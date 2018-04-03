@@ -1,0 +1,43 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.3'
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+group 'br.ufmg.ppgee.orcslab'
+version '1.0.0'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'com.beust:jcommander:1.72'
+    testCompile 'junit:junit:4.12'
+}
+
+jar {
+    baseName = 'upmsp'
+    classifier = null
+    version = null
+    manifest {
+        attributes(
+            'Main-Class': 'br.ufmg.ppgee.orcslab.Main'
+        )
+    }
+}
+
+shadowJar {
+   baseName = 'upmsp'
+   classifier = 'all'
+   version = null
+}
+
