@@ -30,7 +30,7 @@ jar {
     version = null
     manifest {
         attributes(
-            'Main-Class': 'br.ufmg.ppgee.orcslab.Main'
+            'Main-Class': 'br.ufmg.ppgee.orcslab.upmsp.Main'
         )
     }
 }

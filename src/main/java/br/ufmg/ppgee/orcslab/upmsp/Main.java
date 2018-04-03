@@ -2,11 +2,15 @@ package br.ufmg.ppgee.orcslab.upmsp;
 
 import br.ufmg.ppgee.orcslab.upmsp.algorithm.Algorithm;
 import br.ufmg.ppgee.orcslab.upmsp.algorithm.RandomHeuristic;
+import br.ufmg.ppgee.orcslab.upmsp.cli.CommandLineInterface;
 import br.ufmg.ppgee.orcslab.upmsp.neighborhood.*;
 import br.ufmg.ppgee.orcslab.upmsp.problem.Problem;
 import br.ufmg.ppgee.orcslab.upmsp.problem.Solution;
 
-import java.util.*;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
 
 /**
  * Main class with the entry point ({@link #main(String[])}) of this program.
@@ -19,10 +23,12 @@ public class Main {
      * @throws Exception
      */
     public static void main(String[] args) throws Exception {
+//        CommandLineInterface cli = new CommandLineInterface();
+//        cli.run(args);
 
         // Load problem
-        String filename = "/home/andre/Downloads/RSDST/large/I_250_30_S_1-124_10.txt";
-        Problem problem = new Problem(filename);
+        String filename = "/home/andre/Downloads/RSDST/RSDST/small/I_6_2_S_1-9_1.txt";
+        Problem problem = new Problem(Paths.get(filename));
 
         // Create a random solution
         Algorithm algorithm = new RandomHeuristic();
@@ -51,7 +57,6 @@ public class Main {
             System.out.println();
         }
         System.out.println("==============================================================================");
-
     }
 
 }

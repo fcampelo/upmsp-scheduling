@@ -23,6 +23,7 @@ public class Stats {
 
     private String neighborhood = null;
     private long nNeighbors = 0L;
+
     private long nBetterMakespanBetterSumMachinesMakespan = 0L;
     private long nBetterMakespanEqualSumMachinesMakespan = 0L;
     private long nBetterMakespanWorseSumMachinesMakespan = 0L;
@@ -32,6 +33,16 @@ public class Stats {
     private long nEqualMakespanBetterSumMachinesMakespan = 0L;
     private long nEqualMakespanEqualSumMachinesMakespan = 0L;
     private long nEqualMakespanWorseSumMachinesMakespan = 0L;
+
+    private long sumBetterMakespanBetterSumMachinesMakespan = 0L;
+    private long sumBetterMakespanEqualSumMachinesMakespan = 0L;
+    private long sumBetterMakespanWorseSumMachinesMakespan = 0L;
+    private long sumWorseMakespanBetterSumMachinesMakespan = 0L;
+    private long sumWorseMakespanEqualSumMachinesMakespan = 0L;
+    private long sumWorseMakespanWorseSumMachinesMakespan = 0L;
+    private long sumEqualMakespanBetterSumMachinesMakespan = 0L;
+    private long sumEqualMakespanEqualSumMachinesMakespan = 0L;
+    private long sumEqualMakespanWorseSumMachinesMakespan = 0L;
 
     /**
      * Constructor.

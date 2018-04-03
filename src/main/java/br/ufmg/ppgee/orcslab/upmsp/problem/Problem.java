@@ -1,6 +1,7 @@
 package br.ufmg.ppgee.orcslab.upmsp.problem;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Scanner;
 
@@ -32,11 +33,11 @@ public class Problem {
     /**
      * Construction.
      *
-     * @param filename Path to the instance file.
+     * @param instance Path to the instance file.
      * @throws IOException If an error occurs while reading the instance file.
      */
-    public Problem(String filename) throws IOException {
-        try (Scanner input = new Scanner(Paths.get(filename))) {
+    public Problem(Path instance) throws IOException {
+        try (Scanner input = new Scanner(instance)) {
 
             // Read the size of the problem
             n = input.nextInt();
