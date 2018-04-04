@@ -125,7 +125,7 @@ public class DirectSwap extends AbstractNeighborhood {
         Solution base = new Solution(solution);
 
         // Stats
-        Stats stats = new Stats(getName());
+        Stats stats = new Stats(this, solution);
 
         // Evaluate all neighbors/moves
         for (int k1 = 0; k1 < problem.m; ++k1) {
@@ -146,8 +146,7 @@ public class DirectSwap extends AbstractNeighborhood {
 
                                 // Update stats
                                 base.update();
-                                stats.register(relation(base.getMakespan(), base.getSumMachinesMakespan(),
-                                        solution.getMakespan(), solution.getSumMachinesMakespan()));
+                                stats.register(base);
 
                                 // Undo the move
                                 base.set(job2, k2, idx2, false);

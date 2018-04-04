@@ -1,55 +1,60 @@
 package br.ufmg.ppgee.orcslab.upmsp.neighborhood;
 
+import br.ufmg.ppgee.orcslab.upmsp.problem.Solution;
+
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Statistics about a neighborhood.
  */
 public class Stats {
 
     /**
-     * Describe the relation between two solutions when comparing their quality.
+     * A type of entry.
      */
-    public enum QualityRelation {
-        BETTER_MAKESPAN_BETTER_SUM_MACHINES_MAKESPAN,
-        BETTER_MAKESPAN_EQUAL_SUM_MACHINES_MAKESPAN,
-        BETTER_MAKESPAN_WORSE_SUM_MACHINES_MAKESPAN,
-        EQUAL_MAKESPAN_BETTER_SUM_MACHINES_MAKESPAN,
-        EQUAL_MAKESPAN_EQUAL_SUM_MACHINES_MAKESPAN,
-        EQUAL_MAKESPAN_WORSE_SUM_MACHINES_MAKESPAN,
-        WORSE_MAKESPAN_BETTER_SUM_MACHINES_MAKESPAN,
-        WORSE_MAKESPAN_EQUAL_SUM_MACHINES_MAKESPAN,
-        WORSE_MAKESPAN_WORSE_SUM_MACHINES_MAKESPAN;
+    public enum Type {
+        BETTER_BETTER, BETTER_EQUAL, BETTER_WORSE,
+        EQUAL_BETTER, EQUAL_EQUAL, EQUAL_WORSE,
+        WORSE_BETTER, WORSE_EQUAL, WORSE_WORSE;
+    }
+
+    /**
+     * Keep stats of a type of entry.
+     */
+    private static class Entry {
+        public long count = 0L;
+        public long accDeltaMakespan = 0L;
+        public long bestDeltaMakespan = 0L;
+        public long worstDeltaMakespan = 0L;
+        public long accDeltaSumMachinesMakespan = 0L;
+        public long bestDeltaSumMachinesMakespan = Long.MAX_VALUE;
+        public long worstDeltaSumMachinesMakespan = Long.MIN_VALUE;
     }
 
 
-    private String neighborhood = null;
-    private long nNeighbors = 0L;
-
-    private long nBetterMakespanBetterSumMachinesMakespan = 0L;
-    private long nBetterMakespanEqualSumMachinesMakespan = 0L;
-    private long nBetterMakespanWorseSumMachinesMakespan = 0L;
-    private long nWorseMakespanBetterSumMachinesMakespan = 0L;
-    private long nWorseMakespanEqualSumMachinesMakespan = 0L;
-    private long nWorseMakespanWorseSumMachinesMakespan = 0L;
-    private long nEqualMakespanBetterSumMachinesMakespan = 0L;
-    private long nEqualMakespanEqualSumMachinesMakespan = 0L;
-    private long nEqualMakespanWorseSumMachinesMakespan = 0L;
-
-    private long sumBetterMakespanBetterSumMachinesMakespan = 0L;
-    private long sumBetterMakespanEqualSumMachinesMakespan = 0L;
-    private long sumBetterMakespanWorseSumMachinesMakespan = 0L;
-    private long sumWorseMakespanBetterSumMachinesMakespan = 0L;
-    private long sumWorseMakespanEqualSumMachinesMakespan = 0L;
-    private long sumWorseMakespanWorseSumMachinesMakespan = 0L;
-    private long sumEqualMakespanBetterSumMachinesMakespan = 0L;
-    private long sumEqualMakespanEqualSumMachinesMakespan = 0L;
-    private long sumEqualMakespanWorseSumMachinesMakespan = 0L;
+    // Class attributes
+    private String neighborhood = null;         // Name of the neighborhood
+    private long refMakespan = 0L;              // Makespan of the reference solution
+    private long refSumMachinesMakespan = 0L;   // Sum of machines' makespan of the reference solution
+    private long nNeighbors = 0L;               // Number of neighbor solutions
+    Map<Type, Entry> entries;                   // List with a entry for each type of relation neighbor/reference solutions
 
     /**
      * Constructor.
-     * @param neighborhood Name of the neighborhood from which the stats belong.
+     * @param neighborhood The neighborhood.
+     * @param ref Start solution used to generate the neighborhood.
      */
-    public Stats(String neighborhood) {
-        this.neighborhood = neighborhood;
+    public Stats(Neighborhood neighborhood, Solution ref) {
+        ref.update();
+        this.neighborhood = neighborhood.getName();
+        this.refMakespan = ref.getMakespan();
+        this.refSumMachinesMakespan = ref.getSumMachinesMakespan();
+
+        entries = new HashMap<>();
+        for (Type type : Type.values()) {
+            entries.put(type, new Entry());
+        }
     }
 
     /**
@@ -61,49 +66,33 @@ public class Stats {
     }
 
     /**
-     * Register a new neighbor.
-     * @param relation The relation of the neighbor with regarding to the start solution
-     * used to define the neighborhood.
+     * Register a neighbor.
+     * @param neighbor A neighbor solution.
      */
-    public void register(QualityRelation relation) {
+    public void register(Solution neighbor) {
+
+        // Increment the neighbors counter
         ++nNeighbors;
-        switch (relation) {
-            case BETTER_MAKESPAN_BETTER_SUM_MACHINES_MAKESPAN:
-                ++nBetterMakespanBetterSumMachinesMakespan;
-                break;
 
-            case BETTER_MAKESPAN_EQUAL_SUM_MACHINES_MAKESPAN:
-                ++nBetterMakespanEqualSumMachinesMakespan;
-                break;
+        // Make sure the neighbor solution status is updated
+        neighbor.update();
 
-            case BETTER_MAKESPAN_WORSE_SUM_MACHINES_MAKESPAN:
-                ++nBetterMakespanWorseSumMachinesMakespan;
-                break;
+        // Get the type of relation between the neighbor and reference solution
+        Type type = type(neighbor.getMakespan(), neighbor.getSumMachinesMakespan());
 
-            case EQUAL_MAKESPAN_BETTER_SUM_MACHINES_MAKESPAN:
-                ++nEqualMakespanBetterSumMachinesMakespan;
-                break;
+        // Update stats
+        Entry entry = entries.get(type);
+        ++entry.count;
 
-            case EQUAL_MAKESPAN_EQUAL_SUM_MACHINES_MAKESPAN:
-                ++nEqualMakespanEqualSumMachinesMakespan;
-                break;
+        long deltaMakespan = neighbor.getMakespan() - refMakespan;
+        entry.accDeltaMakespan += deltaMakespan;
+        entry.bestDeltaMakespan = Math.min(entry.bestDeltaMakespan, deltaMakespan);
+        entry.worstDeltaMakespan = Math.max(entry.worstDeltaMakespan, deltaMakespan);
 
-            case EQUAL_MAKESPAN_WORSE_SUM_MACHINES_MAKESPAN:
-                ++nEqualMakespanWorseSumMachinesMakespan;
-                break;
-
-            case WORSE_MAKESPAN_BETTER_SUM_MACHINES_MAKESPAN:
-                ++nWorseMakespanBetterSumMachinesMakespan;
-                break;
-
-            case WORSE_MAKESPAN_EQUAL_SUM_MACHINES_MAKESPAN:
-                ++nWorseMakespanEqualSumMachinesMakespan;
-                break;
-
-            case WORSE_MAKESPAN_WORSE_SUM_MACHINES_MAKESPAN:
-                ++nWorseMakespanWorseSumMachinesMakespan;
-                break;
-        }
+        long deltaSumMachinesMakespan = neighbor.getSumMachinesMakespan() - refSumMachinesMakespan;
+        entry.accDeltaSumMachinesMakespan += deltaSumMachinesMakespan;
+        entry.bestDeltaSumMachinesMakespan = Math.min(entry.bestDeltaSumMachinesMakespan, deltaSumMachinesMakespan);
+        entry.worstDeltaSumMachinesMakespan = Math.max(entry.worstDeltaSumMachinesMakespan, deltaSumMachinesMakespan);
     }
 
     /**
@@ -114,184 +103,259 @@ public class Stats {
     }
 
     /**
-     * Return the number of neighbor solutions with better overall makespan.
+     * Return the number of neighbor solutions of specified type.
+     * @param type The type of relation.
+     * @return The number of neighbor solutions.
      */
-    public long countBetterMakespan() {
-        return nBetterMakespanBetterSumMachinesMakespan +
-                nBetterMakespanEqualSumMachinesMakespan +
-                nBetterMakespanWorseSumMachinesMakespan;
+    public long countNeighbors(Type type) {
+        return entries.get(type).count;
     }
 
     /**
-     * Return the number of neighbor solutions with better overall makespan.
+     * Return the better change on the overall makespan with regard to neighbor solutions
+     * of the specified type.
+     * @param type The type of relation.
+     * @return The better change on the overall makespan.
+     *
      */
-    public long countEqualMakespan() {
-        return nEqualMakespanBetterSumMachinesMakespan +
-                nEqualMakespanEqualSumMachinesMakespan +
-                nEqualMakespanWorseSumMachinesMakespan;
+    public long bestDeltaMakespan(Type type) {
+        return entries.get(type).bestDeltaMakespan;
     }
 
     /**
-     * Return the number of neighbor solutions with better overall makespan.
+     * Return the worst change on the overall makespan with regard to neighbor solutions
+     * of the specified type.
+     * @param type The type of relation.
+     * @return The worst change on the overall makespan.
+     *
      */
-    public long countWorseMakespan() {
-        return nWorseMakespanBetterSumMachinesMakespan +
-                nWorseMakespanEqualSumMachinesMakespan +
-                nWorseMakespanWorseSumMachinesMakespan;
+    public long worstDeltaMakespan(Type type) {
+        return entries.get(type).worstDeltaMakespan;
     }
 
     /**
-     * Return the number of neighbor solutions with better sum of machines' makespan.
+     * Return the mean change on the overall makespan with regard to neighbor solutions
+     * of the specified type.
+     * @param type The type of relation.
+     * @return The mean change on the overall makespan.
+     *
      */
-    public long countBetterSumMachinesMakespan() {
-        return nBetterMakespanBetterSumMachinesMakespan +
-                nEqualMakespanBetterSumMachinesMakespan +
-                nWorseMakespanBetterSumMachinesMakespan;
+    public double meanDeltaMakespan(Type type) {
+        if (entries.get(type).count > 0) {
+            return entries.get(type).accDeltaMakespan / (double) entries.get(type).count;
+        }
+        return 0.0;
     }
 
     /**
-     * Return the number of neighbor solutions with better sum of machines' makespan.
+     * Return the better change on the sum of machines' makespan with regard to neighbor
+     * solutions of the specified type.
+     * @param type The type of relation.
+     * @return The better change on the sum of machines' makespan.
+     *
      */
-    public long countEqualSumMachinesMakespan() {
-        return nBetterMakespanEqualSumMachinesMakespan +
-                nEqualMakespanEqualSumMachinesMakespan +
-                nWorseMakespanEqualSumMachinesMakespan;
+    public long bestDeltaSumMachinesMakespan(Type type) {
+        return entries.get(type).bestDeltaSumMachinesMakespan;
     }
 
     /**
-     * Return the number of neighbor solutions with better sum of machines' makespan.
+     * Return the worst change on the sum of machines' makespan with regard to neighbor
+     * solutions of the specified type.
+     * @param type The type of relation.
+     * @return The worst change on the sum of machines' makespan.
+     *
      */
-    public long countWorseSumMachinesMakespan() {
-        return nBetterMakespanWorseSumMachinesMakespan +
-                nEqualMakespanWorseSumMachinesMakespan +
-                nWorseMakespanWorseSumMachinesMakespan;
+    public long worstDeltaSumMachinesMakespan(Type type) {
+        return entries.get(type).worstDeltaSumMachinesMakespan;
     }
 
     /**
-     * Return the number of neighbor solutions with better overall makespan and
-     * better sum of machines' makespan.
+     * Return the mean change on the sum of machines' makespan with regard to neighbor
+     * solutions of the specified type.
+     * @param type The type of relation.
+     * @return The mean change on the sum of machines' makespan.
+     *
      */
-    public long countBetterMakespanBetterSumMachinesMakespan() {
-        return nBetterMakespanBetterSumMachinesMakespan;
+    public double meanDeltaSumMachinesMakespan(Type type) {
+        if (entries.get(type).count > 0) {
+            return entries.get(type).accDeltaSumMachinesMakespan / (double) entries.get(type).count;
+        }
+        return 0.0;
     }
 
     /**
-     * Return the number of neighbor solutions with better overall makespan and
-     * equal sum of machines' makespan.
+     * Return the relation of the neighbor solution to the reference solution.
+     * @param makespan The overall makespan of the first solution.
+     * @param sumMachinesMakespan The sum of machines' makespan of the first solution.
+     * @return The relation of the neighbor solution to the reference solution.
      */
-    public long countBetterMakespanEqualSumMachinesMakespan() {
-        return nBetterMakespanEqualSumMachinesMakespan;
-    }
+    private Type type(int makespan, int sumMachinesMakespan) {
+        if (makespan < refMakespan) {
+            if (sumMachinesMakespan < refSumMachinesMakespan) {
+                return Type.BETTER_BETTER;
+            } else if (sumMachinesMakespan > refSumMachinesMakespan) {
+                return Type.BETTER_WORSE;
+            } else {
+                return Type.BETTER_EQUAL;
+            }
 
-    /**
-     * Return the number of neighbor solutions with better overall makespan and
-     * worse sum of machines' makespan.
-     */
-    public long countBetterMakespanWorseSumMachinesMakespan() {
-        return nBetterMakespanWorseSumMachinesMakespan;
-    }
+        } else if (makespan > refMakespan) {
+            if (sumMachinesMakespan < refSumMachinesMakespan) {
+                return Type.WORSE_BETTER;
+            } else if (sumMachinesMakespan > refSumMachinesMakespan) {
+                return Type.WORSE_WORSE;
+            } else {
+                return Type.WORSE_EQUAL;
+            }
 
-    /**
-     * Return the number of neighbor solutions with equal overall makespan and
-     * better sum of machines' makespan.
-     */
-    public long countEqualMakespanBetterSumMachinesMakespan() {
-        return nEqualMakespanBetterSumMachinesMakespan;
-    }
-
-    /**
-     * Return the number of neighbor solutions with equal overall makespan and
-     * equal sum of machines' makespan.
-     */
-    public long countEqualMakespanEqualSumMachinesMakespan() {
-        return nEqualMakespanEqualSumMachinesMakespan;
-    }
-
-    /**
-     * Return the number of neighbor solutions with equal overall makespan and
-     * worse sum of machines' makespan.
-     */
-    public long countEqualMakespanWorseSumMachinesMakespan() {
-        return nEqualMakespanWorseSumMachinesMakespan;
-    }
-
-    /**
-     * Return the number of neighbor solutions with worse overall makespan and
-     * better sum of machines' makespan.
-     */
-    public long countWorseMakespanBetterSumMachinesMakespan() {
-        return nWorseMakespanBetterSumMachinesMakespan;
-    }
-
-    /**
-     * Return the number of neighbor solutions with worse overall makespan and
-     * equal sum of machines' makespan.
-     */
-    public long countWorseMakespanEqualSumMachinesMakespan() {
-        return nWorseMakespanEqualSumMachinesMakespan;
-    }
-
-    /**
-     * Return the number of neighbor solutions with worse overall makespan and
-     * worse sum of machines' makespan.
-     */
-    public long countWorseMakespanWorseSumMachinesMakespan() {
-        return nWorseMakespanWorseSumMachinesMakespan;
+        } else {
+            if (sumMachinesMakespan < refSumMachinesMakespan) {
+                return Type.EQUAL_BETTER;
+            } else if (sumMachinesMakespan > refSumMachinesMakespan) {
+                return Type.EQUAL_WORSE;
+            } else {
+                return Type.EQUAL_EQUAL;
+            }
+        }
     }
 
     @Override
     public String toString() {
 
-        // Number of digits to align the results
-        int digits = String.valueOf(nNeighbors).length();
-        int columnSize = Math.max("Number of Neighbors".length(), digits + " (000.00000%)".length());
+        // Number of digits to align columns
+        int col1 = "MAX(makespan)".length();
+        int col2 = "SUM(makespan)".length();
+        int col3 = Math.max("ALL (%)".length(), "000.0000".length());
+        int col4 = Math.max("GROUP (%)".length(), "000.0000".length());
 
-        // Line
-        int lineSize = " MAX(makespan[k]) | SUM(makespan[k]) | ".length() + columnSize + 1;
-        StringBuilder lineBuilder = new StringBuilder();
-        for (int i = 0; i < lineSize; ++i) {
-            lineBuilder.append("-");
+        int col5 = "DELTA (best)".length();
+        int col6 = "DELTA (worst)".length();
+        int col7 = "DELTA (mean)".length();
+
+        for (Type type : entries.keySet()) {
+            col5 = Math.max(col5, String.valueOf(entries.get(type).bestDeltaSumMachinesMakespan).length());
+            col6 = Math.max(col6, String.valueOf(entries.get(type).worstDeltaSumMachinesMakespan).length());
+            col7 = Math.max(col7, col6 + 3);
         }
 
-        String line = lineBuilder.toString();
+        // Separation line
+        int length = col1 + col2 + col3 + col4 + col5 + col6 + col7 + 20;
+        StringBuilder sepBuilder = new StringBuilder();
+        for (int i = 0; i < length; ++i) {
+            sepBuilder.append("-");
+        }
 
-        // Build a string with the stats
-        StringBuilder builder = new StringBuilder();
-        builder.append(line + "\n");
-        builder.append(String.format("%" + ((lineSize / 2) - (("Statistics - " + neighborhood).length() / 2)) + "s\n", "Statistics - " + neighborhood));
-        builder.append(line + "\n");
-        builder.append(String.format(" MAX(makespan[k]) | SUM(makespan[k]) | Number of Neighbors \n"));
-        builder.append(line + "\n");
-        builder.append(String.format("                  |                  | \n"));
-        builder.append(String.format("                  | better           | %" + digits + "d (%9.5f%%)\n",
-                nBetterMakespanBetterSumMachinesMakespan, nNeighbors <= 0 ? 0 : 100.0 * (nBetterMakespanBetterSumMachinesMakespan / (double) nNeighbors)));
-        builder.append(String.format(" better           | equal            | %" + digits + "d (%9.5f%%)\n",
-                nBetterMakespanEqualSumMachinesMakespan, nNeighbors <= 0 ? 0 : 100.0 * (nBetterMakespanEqualSumMachinesMakespan / (double) nNeighbors)));
-        builder.append(String.format("                  | worse            | %" + digits + "d (%9.5f%%)\n",
-                nBetterMakespanWorseSumMachinesMakespan, nNeighbors <= 0 ? 0 : 100.0 * (nBetterMakespanWorseSumMachinesMakespan / (double) nNeighbors)));
-        builder.append(String.format("                  |                  | \n"));
-        builder.append(line + "\n");
-        builder.append(String.format("                  |                  | \n"));
-        builder.append(String.format("                  | better           | %" + digits + "d (%9.5f%%)\n",
-                nEqualMakespanBetterSumMachinesMakespan, nNeighbors <= 0 ? 0 : 100.0 * (nEqualMakespanBetterSumMachinesMakespan / (double) nNeighbors)));
-        builder.append(String.format(" equal            | equal            | %" + digits + "d (%9.5f%%)\n",
-                nEqualMakespanEqualSumMachinesMakespan, nNeighbors <= 0 ? 0 : 100.0 * (nEqualMakespanEqualSumMachinesMakespan / (double) nNeighbors)));
-        builder.append(String.format("                  | worse            | %" + digits + "d (%9.5f%%)\n",
-                nEqualMakespanWorseSumMachinesMakespan, nNeighbors <= 0 ? 0 : 100.0 * (nEqualMakespanWorseSumMachinesMakespan / (double) nNeighbors)));
-        builder.append(String.format("                  |                  | \n"));
-        builder.append(line + "\n");
-        builder.append(String.format("                  |                  | \n"));
-        builder.append(String.format("                  | better           | %" + digits + "d (%9.5f%%)\n",
-                nWorseMakespanBetterSumMachinesMakespan, nNeighbors <= 0 ? 0 : 100.0 * (nWorseMakespanBetterSumMachinesMakespan / (double) nNeighbors)));
-        builder.append(String.format(" worse            | equal            | %" + digits + "d (%9.5f%%)\n",
-                nWorseMakespanEqualSumMachinesMakespan, nNeighbors <= 0 ? 0 : 100.0 * (nWorseMakespanEqualSumMachinesMakespan / (double) nNeighbors)));
-        builder.append(String.format("                  | worse            | %" + digits + "d (%9.5f%%)\n",
-                nWorseMakespanWorseSumMachinesMakespan, nNeighbors <= 0 ? 0 : 100.0 * (nWorseMakespanWorseSumMachinesMakespan / (double) nNeighbors)));
-        builder.append(String.format("                  |                  | \n"));
-        builder.append(line + "\n");
-        builder.append(String.format("Neighborhood size: %d\n", nNeighbors));
-        builder.append(line + "\n");
+        sepBuilder.append("\n");
+        String sep = sepBuilder.toString();
 
-        return builder.toString();
+        // Keep content
+        StringBuilder content = new StringBuilder();
+
+        // Patterns
+        String patternHeader = String.format(" %%%ds | %%%ds | %%%ds | %%%ds | %%%ds | %%%ds | %%%ds \n",
+                col1, col2, col3, col4, col5, col6, col7);
+
+        String patternEntry = String.format(" %%%ds | %%%ds | %%%d.4f | %%%d.4f | %%%dd | %%%dd | %%%d.2f \n",
+                col1, col2, col3, col4, col5, col6, col7);
+
+        // Size of groups
+        long countBetter = entries.get(Type.BETTER_BETTER).count + entries.get(Type.BETTER_EQUAL).count +
+                entries.get(Type.BETTER_WORSE).count;
+        countBetter = Math.max(countBetter, 1L);
+
+        long countEqual = entries.get(Type.EQUAL_BETTER).count + entries.get(Type.EQUAL_EQUAL).count +
+                entries.get(Type.EQUAL_WORSE).count;
+        countEqual = Math.max(countEqual, 1L);
+
+        long countWorse = entries.get(Type.WORSE_BETTER).count + entries.get(Type.WORSE_EQUAL).count +
+                entries.get(Type.WORSE_WORSE).count;
+        countWorse = Math.max(countWorse, 1L);
+
+        // Header
+        content.append(sep);
+        content.append(String.format("Neighborhood: %s\n", neighborhood));
+        content.append(sep);
+        content.append(String.format(patternHeader,
+                "MAX(makespan)", "SUM(makespan)", "ALL (%)", "GROUP (%)",
+                "DELTA (best)", "DELTA (worst)", "DELTA (mean)"));
+
+        // Better makespan
+        content.append(sep);
+
+        content.append(String.format(patternEntry, "", "better",
+                100.0 * entries.get(Type.BETTER_BETTER).count / (double) nNeighbors,
+                100.0 * entries.get(Type.BETTER_BETTER).count / (double) countBetter,
+                entries.get(Type.BETTER_BETTER).bestDeltaSumMachinesMakespan,
+                entries.get(Type.BETTER_BETTER).worstDeltaSumMachinesMakespan,
+                meanDeltaSumMachinesMakespan(Type.BETTER_BETTER)));
+
+        content.append(String.format(patternEntry, "better", "equal",
+                100.0 * entries.get(Type.BETTER_EQUAL).count / (double) nNeighbors,
+                100.0 * entries.get(Type.BETTER_EQUAL).count / (double) countBetter,
+                entries.get(Type.BETTER_EQUAL).bestDeltaSumMachinesMakespan,
+                entries.get(Type.BETTER_EQUAL).worstDeltaSumMachinesMakespan,
+                meanDeltaSumMachinesMakespan(Type.BETTER_EQUAL)));
+
+        content.append(String.format(patternEntry, "", "worse",
+                100.0 * entries.get(Type.BETTER_WORSE).count / (double) nNeighbors,
+                100.0 * entries.get(Type.BETTER_WORSE).count / (double) countBetter,
+                entries.get(Type.BETTER_WORSE).bestDeltaSumMachinesMakespan,
+                entries.get(Type.BETTER_WORSE).worstDeltaSumMachinesMakespan,
+                meanDeltaSumMachinesMakespan(Type.BETTER_WORSE)));
+
+        // Equal makespan
+        content.append(sep);
+
+        content.append(String.format(patternEntry, "", "better",
+                100.0 * entries.get(Type.EQUAL_BETTER).count / (double) nNeighbors,
+                100.0 * entries.get(Type.EQUAL_BETTER).count / (double) countEqual,
+                entries.get(Type.EQUAL_BETTER).bestDeltaSumMachinesMakespan,
+                entries.get(Type.EQUAL_BETTER).worstDeltaSumMachinesMakespan,
+                meanDeltaSumMachinesMakespan(Type.EQUAL_BETTER)));
+
+        content.append(String.format(patternEntry, "equal", "equal",
+                100.0 * entries.get(Type.EQUAL_EQUAL).count / (double) nNeighbors,
+                100.0 * entries.get(Type.EQUAL_EQUAL).count / (double) countEqual,
+                entries.get(Type.EQUAL_EQUAL).bestDeltaSumMachinesMakespan,
+                entries.get(Type.EQUAL_EQUAL).worstDeltaSumMachinesMakespan,
+                meanDeltaSumMachinesMakespan(Type.EQUAL_EQUAL)));
+
+        content.append(String.format(patternEntry, "", "worse",
+                100.0 * entries.get(Type.EQUAL_WORSE).count / (double) nNeighbors,
+                100.0 * entries.get(Type.EQUAL_WORSE).count / (double) countEqual,
+                entries.get(Type.EQUAL_WORSE).bestDeltaSumMachinesMakespan,
+                entries.get(Type.EQUAL_WORSE).worstDeltaSumMachinesMakespan,
+                meanDeltaSumMachinesMakespan(Type.EQUAL_WORSE)));
+
+        // Worse makespan
+        content.append(sep);
+
+        content.append(String.format(patternEntry, "", "better",
+                100.0 * entries.get(Type.WORSE_BETTER).count / (double) nNeighbors,
+                100.0 * entries.get(Type.WORSE_BETTER).count / (double) countWorse,
+                entries.get(Type.WORSE_BETTER).bestDeltaSumMachinesMakespan,
+                entries.get(Type.WORSE_BETTER).worstDeltaSumMachinesMakespan,
+                meanDeltaSumMachinesMakespan(Type.WORSE_BETTER)));
+
+        content.append(String.format(patternEntry, "worse", "equal",
+                100.0 * entries.get(Type.WORSE_EQUAL).count / (double) nNeighbors,
+                100.0 * entries.get(Type.WORSE_EQUAL).count / (double) countWorse,
+                entries.get(Type.WORSE_EQUAL).bestDeltaSumMachinesMakespan,
+                entries.get(Type.WORSE_EQUAL).worstDeltaSumMachinesMakespan,
+                meanDeltaSumMachinesMakespan(Type.WORSE_EQUAL)));
+
+        content.append(String.format(patternEntry, "", "worse",
+                100.0 * entries.get(Type.WORSE_WORSE).count / (double) nNeighbors,
+                100.0 * entries.get(Type.WORSE_WORSE).count / (double) countWorse,
+                entries.get(Type.WORSE_WORSE).bestDeltaSumMachinesMakespan,
+                entries.get(Type.WORSE_WORSE).worstDeltaSumMachinesMakespan,
+                meanDeltaSumMachinesMakespan(Type.WORSE_WORSE)));
+
+        // Footer
+        content.append(sep);
+        content.append(String.format("Neighborhood size: %d\n", nNeighbors));
+        content.append(sep);
+
+        return content.toString();
     }
 }

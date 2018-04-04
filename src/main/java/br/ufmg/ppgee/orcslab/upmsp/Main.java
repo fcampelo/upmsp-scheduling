@@ -27,7 +27,8 @@ public class Main {
 //        cli.run(args);
 
         // Load problem
-        String filename = "/home/andre/Downloads/RSDST/RSDST/small/I_6_2_S_1-9_1.txt";
+        //String filename = "/home/andre/Downloads/RSDST/small/I_6_2_S_1-9_1.txt";
+        String filename = "/home/andre/Downloads/RSDST/large/I_250_30_S_1-124_10.txt";
         Problem problem = new Problem(Paths.get(filename));
 
         // Create a random solution

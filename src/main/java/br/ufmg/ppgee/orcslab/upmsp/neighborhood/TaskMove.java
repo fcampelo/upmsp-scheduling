@@ -116,7 +116,7 @@ public class TaskMove extends AbstractNeighborhood {
         Solution base = new Solution(solution);
 
         // Stats
-        Stats stats = new Stats(getName());
+        Stats stats = new Stats(this, solution);
 
         // Evaluate all neighbors/moves
         for (int k1 = 0; k1 < problem.m; ++k1) {
@@ -131,8 +131,7 @@ public class TaskMove extends AbstractNeighborhood {
 
                             // Update stats
                             base.update();
-                            stats.register(relation(base.getMakespan(), base.getSumMachinesMakespan(),
-                                    solution.getMakespan(), solution.getSumMachinesMakespan()));
+                            stats.register(base);
 
                             // Undo the insertion of job at position idx2
                             base.remove(k2, idx2, false);

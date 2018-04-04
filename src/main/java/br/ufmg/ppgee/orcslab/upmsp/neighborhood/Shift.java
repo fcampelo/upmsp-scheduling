@@ -114,7 +114,7 @@ public class Shift extends AbstractNeighborhood {
         Solution base = new Solution(solution);
 
         // Stats
-        Stats stats = new Stats(getName());
+        Stats stats = new Stats(this, solution);
 
         // Evaluate all neighbors/moves
         for (int k = 0; k < problem.m; ++k) {
@@ -130,8 +130,7 @@ public class Shift extends AbstractNeighborhood {
 
                             // Update stats
                             base.update();
-                            stats.register(relation(base.getMakespan(), base.getSumMachinesMakespan(),
-                                    solution.getMakespan(), solution.getSumMachinesMakespan()));
+                            stats.register(base);
 
                             // Undo the insertion of job at position idx2
                             base.remove(k, idx2, false);
