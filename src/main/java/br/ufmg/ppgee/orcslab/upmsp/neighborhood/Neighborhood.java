@@ -25,6 +25,15 @@ public interface Neighborhood {
     Solution getBestNeighbor(Problem problem, Solution solution);
 
     /**
+     * Return the best neighbor considering only the moves with the target machine.
+     * @param problem The instance of the problem.
+     * @param solution Start solution from which the neighborhood will be generated.
+     * @param target The target machine.
+     * @return The best neighbor of the start solution.
+     */
+    Solution getBestNeighbor(Problem problem, Solution solution, int target);
+
+    /**
      * Returns any neighbor solution.
      * @param problem The instance of the problem.
      * @param solution Start solution from which the neighborhood will be generated.
@@ -32,6 +41,16 @@ public interface Neighborhood {
      * @return Any neighbor solution of the start solution.
      */
     Solution getAnyNeighbor(Problem problem, Solution solution, Random random);
+
+    /**
+     * Returns any neighbor solution considering only the moves with the target machine.
+     * @param problem The instance of the problem.
+     * @param solution Start solution from which the neighborhood will be generated.
+     * @param random A random number generator.
+     * @param target The target machine.
+     * @return Any neighbor solution of the start solution.
+     */
+    Solution getAnyNeighbor(Problem problem, Solution solution, Random random, int target);
 
     /**
      * Return some statistics about a neighborhood.

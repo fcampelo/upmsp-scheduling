@@ -11,19 +11,22 @@ import java.util.List;
 @Parameters(commandDescription = "Solve an instance of the problem.")
 public class OptimizeCommand extends AbstractCommand {
 
-    @Parameter(names = "-verbose", description = "Print the progress of the algorithm throughout the optimization process.")
+    @Parameter(names = "--verbose", description = "Print the progress of the algorithm throughout the optimization process.")
     public boolean vebose = false;
 
-    @Parameter(names = "-seed", description = "Seed used to initialize the random number generator.")
+    @Parameter(names = "--seed", description = "Seed used to initialize the random number generator.")
     public Long seed = null;
 
-    @Parameter(names = "-instance", description = "Path to the instance file.", required = true)
+    @Parameter(names = "--time-limit", description = "Total time for running the algorithm (in milliseconds).")
+    public Long timeLimit = null;
+
+    @Parameter(names = "--instance", description = "Path to the instance file.", required = true)
     public String instance = null;
 
-    @Parameter(names = "-algorithm", description = "Algorithm used to solve the problem.", required = true)
+    @Parameter(names = "--algorithm", description = "Algorithm used to solve the problem.", required = true)
     public String algorithm = null;
 
-    @Parameter(names = "-param", description = "Algorithm parameters.", converter = ParamConverter.class)
+    @Parameter(names = "--param", description = "Algorithm parameters.", converter = ParamConverter.class)
     public List<String> parameters = new ArrayList<>();
 
     @Override

@@ -25,8 +25,8 @@ public class Stats {
     private static class Entry {
         public long count = 0L;
         public long accDeltaMakespan = 0L;
-        public long bestDeltaMakespan = 0L;
-        public long worstDeltaMakespan = 0L;
+        public long bestDeltaMakespan = Long.MAX_VALUE;
+        public long worstDeltaMakespan = Long.MIN_VALUE;
         public long accDeltaSumMachinesMakespan = 0L;
         public long bestDeltaSumMachinesMakespan = Long.MAX_VALUE;
         public long worstDeltaSumMachinesMakespan = Long.MIN_VALUE;
@@ -119,6 +119,9 @@ public class Stats {
      *
      */
     public long bestDeltaMakespan(Type type) {
+        if (entries.get(type).bestDeltaMakespan == Long.MAX_VALUE) {
+            return 0L;
+        }
         return entries.get(type).bestDeltaMakespan;
     }
 
@@ -130,6 +133,9 @@ public class Stats {
      *
      */
     public long worstDeltaMakespan(Type type) {
+        if (entries.get(type).worstDeltaMakespan == Long.MIN_VALUE) {
+            return 0L;
+        }
         return entries.get(type).worstDeltaMakespan;
     }
 
@@ -155,6 +161,9 @@ public class Stats {
      *
      */
     public long bestDeltaSumMachinesMakespan(Type type) {
+        if (entries.get(type).bestDeltaSumMachinesMakespan == Long.MAX_VALUE) {
+            return 0L;
+        }
         return entries.get(type).bestDeltaSumMachinesMakespan;
     }
 
@@ -166,6 +175,9 @@ public class Stats {
      *
      */
     public long worstDeltaSumMachinesMakespan(Type type) {
+        if (entries.get(type).worstDeltaSumMachinesMakespan== Long.MIN_VALUE) {
+            return 0L;
+        }
         return entries.get(type).worstDeltaSumMachinesMakespan;
     }
 
@@ -233,8 +245,8 @@ public class Stats {
         int col7 = "DELTA (mean)".length();
 
         for (Type type : entries.keySet()) {
-            col5 = Math.max(col5, String.valueOf(entries.get(type).bestDeltaSumMachinesMakespan).length());
-            col6 = Math.max(col6, String.valueOf(entries.get(type).worstDeltaSumMachinesMakespan).length());
+            col5 = Math.max(col5, String.valueOf(bestDeltaSumMachinesMakespan(type)).length());
+            col6 = Math.max(col6, String.valueOf(worstDeltaSumMachinesMakespan(type)).length());
             col7 = Math.max(col7, col6 + 3);
         }
 
@@ -252,104 +264,101 @@ public class Stats {
         StringBuilder content = new StringBuilder();
 
         // Patterns
-        String patternHeader = String.format(" %%%ds | %%%ds | %%%ds | %%%ds | %%%ds | %%%ds | %%%ds \n",
-                col1, col2, col3, col4, col5, col6, col7);
-
-        String patternEntry = String.format(" %%%ds | %%%ds | %%%d.4f | %%%d.4f | %%%dd | %%%dd | %%%d.2f \n",
+        String pattern = String.format(" %%-%ds | %%-%ds | %%%ds | %%%ds | %%%ds | %%%ds | %%%ds \n",
                 col1, col2, col3, col4, col5, col6, col7);
 
         // Size of groups
-        long countBetter = entries.get(Type.BETTER_BETTER).count + entries.get(Type.BETTER_EQUAL).count +
-                entries.get(Type.BETTER_WORSE).count;
+        long countBetter = countNeighbors(Type.BETTER_BETTER) + countNeighbors(Type.BETTER_EQUAL) +
+                countNeighbors(Type.BETTER_WORSE);
         countBetter = Math.max(countBetter, 1L);
 
-        long countEqual = entries.get(Type.EQUAL_BETTER).count + entries.get(Type.EQUAL_EQUAL).count +
-                entries.get(Type.EQUAL_WORSE).count;
+        long countEqual = countNeighbors(Type.EQUAL_BETTER) + countNeighbors(Type.EQUAL_EQUAL) +
+                countNeighbors(Type.EQUAL_WORSE);
         countEqual = Math.max(countEqual, 1L);
 
-        long countWorse = entries.get(Type.WORSE_BETTER).count + entries.get(Type.WORSE_EQUAL).count +
-                entries.get(Type.WORSE_WORSE).count;
+        long countWorse = countNeighbors(Type.WORSE_BETTER) + countNeighbors(Type.WORSE_EQUAL) +
+                countNeighbors(Type.WORSE_WORSE);
         countWorse = Math.max(countWorse, 1L);
 
         // Header
         content.append(sep);
         content.append(String.format("Neighborhood: %s\n", neighborhood));
         content.append(sep);
-        content.append(String.format(patternHeader,
+        content.append(String.format(pattern,
                 "MAX(makespan)", "SUM(makespan)", "ALL (%)", "GROUP (%)",
                 "DELTA (best)", "DELTA (worst)", "DELTA (mean)"));
 
         // Better makespan
         content.append(sep);
 
-        content.append(String.format(patternEntry, "", "better",
-                100.0 * entries.get(Type.BETTER_BETTER).count / (double) nNeighbors,
-                100.0 * entries.get(Type.BETTER_BETTER).count / (double) countBetter,
-                entries.get(Type.BETTER_BETTER).bestDeltaSumMachinesMakespan,
-                entries.get(Type.BETTER_BETTER).worstDeltaSumMachinesMakespan,
-                meanDeltaSumMachinesMakespan(Type.BETTER_BETTER)));
+        content.append(String.format(pattern, "", "better",
+                String.format("%.4f", 100.0 * countNeighbors(Type.BETTER_BETTER) / (double) nNeighbors),
+                String.format("%.4f", 100.0 * countNeighbors(Type.BETTER_BETTER) / (double) countBetter),
+                String.format("%d", bestDeltaSumMachinesMakespan(Type.BETTER_BETTER)),
+                String.format("%d", worstDeltaSumMachinesMakespan(Type.BETTER_BETTER)),
+                String.format("%.2f", meanDeltaSumMachinesMakespan(Type.BETTER_BETTER))));
 
-        content.append(String.format(patternEntry, "better", "equal",
-                100.0 * entries.get(Type.BETTER_EQUAL).count / (double) nNeighbors,
-                100.0 * entries.get(Type.BETTER_EQUAL).count / (double) countBetter,
-                entries.get(Type.BETTER_EQUAL).bestDeltaSumMachinesMakespan,
-                entries.get(Type.BETTER_EQUAL).worstDeltaSumMachinesMakespan,
-                meanDeltaSumMachinesMakespan(Type.BETTER_EQUAL)));
+        content.append(String.format(pattern, "better", "equal",
+                String.format("%.4f", 100.0 * countNeighbors(Type.BETTER_EQUAL) / (double) nNeighbors),
+                String.format("%.4f", 100.0 * countNeighbors(Type.BETTER_EQUAL) / (double) countBetter),
+                String.format("%d", bestDeltaSumMachinesMakespan(Type.BETTER_EQUAL)),
+                String.format("%d", worstDeltaSumMachinesMakespan(Type.BETTER_EQUAL)),
+                String.format("%.2f", meanDeltaSumMachinesMakespan(Type.BETTER_EQUAL))));
 
-        content.append(String.format(patternEntry, "", "worse",
-                100.0 * entries.get(Type.BETTER_WORSE).count / (double) nNeighbors,
-                100.0 * entries.get(Type.BETTER_WORSE).count / (double) countBetter,
-                entries.get(Type.BETTER_WORSE).bestDeltaSumMachinesMakespan,
-                entries.get(Type.BETTER_WORSE).worstDeltaSumMachinesMakespan,
-                meanDeltaSumMachinesMakespan(Type.BETTER_WORSE)));
+        content.append(String.format(pattern, "", "worse",
+                String.format("%.4f", 100.0 * countNeighbors(Type.BETTER_WORSE) / (double) nNeighbors),
+                String.format("%.4f", 100.0 * countNeighbors(Type.BETTER_WORSE) / (double) countBetter),
+                String.format("%d", bestDeltaSumMachinesMakespan(Type.BETTER_WORSE)),
+                String.format("%d", worstDeltaSumMachinesMakespan(Type.BETTER_WORSE)),
+                String.format("%.2f", meanDeltaSumMachinesMakespan(Type.BETTER_WORSE))));
 
         // Equal makespan
         content.append(sep);
 
-        content.append(String.format(patternEntry, "", "better",
-                100.0 * entries.get(Type.EQUAL_BETTER).count / (double) nNeighbors,
-                100.0 * entries.get(Type.EQUAL_BETTER).count / (double) countEqual,
-                entries.get(Type.EQUAL_BETTER).bestDeltaSumMachinesMakespan,
-                entries.get(Type.EQUAL_BETTER).worstDeltaSumMachinesMakespan,
-                meanDeltaSumMachinesMakespan(Type.EQUAL_BETTER)));
+        content.append(String.format(pattern, "", "better",
+                String.format("%.4f", 100.0 * countNeighbors(Type.EQUAL_BETTER) / (double) nNeighbors),
+                String.format("%.4f", 100.0 * countNeighbors(Type.EQUAL_BETTER) / (double) countEqual),
+                String.format("%d", bestDeltaSumMachinesMakespan(Type.EQUAL_BETTER)),
+                String.format("%d", worstDeltaSumMachinesMakespan(Type.EQUAL_BETTER)),
+                String.format("%.2f", meanDeltaSumMachinesMakespan(Type.EQUAL_BETTER))));
 
-        content.append(String.format(patternEntry, "equal", "equal",
-                100.0 * entries.get(Type.EQUAL_EQUAL).count / (double) nNeighbors,
-                100.0 * entries.get(Type.EQUAL_EQUAL).count / (double) countEqual,
-                entries.get(Type.EQUAL_EQUAL).bestDeltaSumMachinesMakespan,
-                entries.get(Type.EQUAL_EQUAL).worstDeltaSumMachinesMakespan,
-                meanDeltaSumMachinesMakespan(Type.EQUAL_EQUAL)));
+        content.append(String.format(pattern, "equal", "equal",
+                String.format("%.4f", 100.0 * countNeighbors(Type.EQUAL_EQUAL) / (double) nNeighbors),
+                String.format("%.4f", 100.0 * countNeighbors(Type.EQUAL_EQUAL) / (double) countEqual),
+                String.format("%d", bestDeltaSumMachinesMakespan(Type.EQUAL_EQUAL)),
+                String.format("%d", worstDeltaSumMachinesMakespan(Type.EQUAL_EQUAL)),
+                String.format("%.2f", meanDeltaSumMachinesMakespan(Type.EQUAL_EQUAL))));
 
-        content.append(String.format(patternEntry, "", "worse",
-                100.0 * entries.get(Type.EQUAL_WORSE).count / (double) nNeighbors,
-                100.0 * entries.get(Type.EQUAL_WORSE).count / (double) countEqual,
-                entries.get(Type.EQUAL_WORSE).bestDeltaSumMachinesMakespan,
-                entries.get(Type.EQUAL_WORSE).worstDeltaSumMachinesMakespan,
-                meanDeltaSumMachinesMakespan(Type.EQUAL_WORSE)));
+        content.append(String.format(pattern, "", "worse",
+                String.format("%.4f", 100.0 * countNeighbors(Type.EQUAL_WORSE) / (double) nNeighbors),
+                String.format("%.4f", 100.0 * countNeighbors(Type.EQUAL_WORSE) / (double) countEqual),
+                String.format("%d", bestDeltaSumMachinesMakespan(Type.EQUAL_WORSE)),
+                String.format("%d", worstDeltaSumMachinesMakespan(Type.EQUAL_WORSE)),
+                String.format("%.2f", meanDeltaSumMachinesMakespan(Type.EQUAL_WORSE))));
 
         // Worse makespan
         content.append(sep);
 
-        content.append(String.format(patternEntry, "", "better",
-                100.0 * entries.get(Type.WORSE_BETTER).count / (double) nNeighbors,
-                100.0 * entries.get(Type.WORSE_BETTER).count / (double) countWorse,
-                entries.get(Type.WORSE_BETTER).bestDeltaSumMachinesMakespan,
-                entries.get(Type.WORSE_BETTER).worstDeltaSumMachinesMakespan,
-                meanDeltaSumMachinesMakespan(Type.WORSE_BETTER)));
+        content.append(String.format(pattern, "", "better",
+                String.format("%.4f", 100.0 * countNeighbors(Type.WORSE_BETTER) / (double) nNeighbors),
+                String.format("%.4f", 100.0 * countNeighbors(Type.WORSE_BETTER) / (double) countWorse),
+                String.format("%d", bestDeltaSumMachinesMakespan(Type.WORSE_BETTER)),
+                String.format("%d", worstDeltaSumMachinesMakespan(Type.WORSE_BETTER)),
+                String.format("%.2f", meanDeltaSumMachinesMakespan(Type.WORSE_BETTER))));
 
-        content.append(String.format(patternEntry, "worse", "equal",
-                100.0 * entries.get(Type.WORSE_EQUAL).count / (double) nNeighbors,
-                100.0 * entries.get(Type.WORSE_EQUAL).count / (double) countWorse,
-                entries.get(Type.WORSE_EQUAL).bestDeltaSumMachinesMakespan,
-                entries.get(Type.WORSE_EQUAL).worstDeltaSumMachinesMakespan,
-                meanDeltaSumMachinesMakespan(Type.WORSE_EQUAL)));
+        content.append(String.format(pattern, "worse", "equal",
+                String.format("%.4f", 100.0 * countNeighbors(Type.WORSE_EQUAL) / (double) nNeighbors),
+                String.format("%.4f", 100.0 * countNeighbors(Type.WORSE_EQUAL) / (double) countWorse),
+                String.format("%d", bestDeltaSumMachinesMakespan(Type.WORSE_EQUAL)),
+                String.format("%d", worstDeltaSumMachinesMakespan(Type.WORSE_EQUAL)),
+                String.format("%.2f", meanDeltaSumMachinesMakespan(Type.WORSE_EQUAL))));
 
-        content.append(String.format(patternEntry, "", "worse",
-                100.0 * entries.get(Type.WORSE_WORSE).count / (double) nNeighbors,
-                100.0 * entries.get(Type.WORSE_WORSE).count / (double) countWorse,
-                entries.get(Type.WORSE_WORSE).bestDeltaSumMachinesMakespan,
-                entries.get(Type.WORSE_WORSE).worstDeltaSumMachinesMakespan,
-                meanDeltaSumMachinesMakespan(Type.WORSE_WORSE)));
+        content.append(String.format(pattern, "", "worse",
+                String.format("%.4f", 100.0 * countNeighbors(Type.WORSE_WORSE) / (double) nNeighbors),
+                String.format("%.4f", 100.0 * countNeighbors(Type.WORSE_WORSE) / (double) countWorse),
+                String.format("%d", bestDeltaSumMachinesMakespan(Type.WORSE_WORSE)),
+                String.format("%d", worstDeltaSumMachinesMakespan(Type.WORSE_WORSE)),
+                String.format("%.2f", meanDeltaSumMachinesMakespan(Type.WORSE_WORSE))));
 
         // Footer
         content.append(sep);
