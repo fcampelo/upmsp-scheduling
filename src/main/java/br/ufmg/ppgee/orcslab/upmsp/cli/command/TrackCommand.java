@@ -19,16 +19,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @Parameters(commandDescription = "Save all solutions which at some point were incumbents.")
-public class TrackSolutionsCommand extends AbstractCommand {
+public class TrackCommand extends AbstractCommand {
 
     @Parameter(names = "--verbose", description = "Show the progress.")
     public boolean verbose = false;
 
-    @Parameter(names = "--repetitions", description = "Perform the analysis throught an optimization process.")
-    public Integer repetitions = 1;
-
     @Parameter(names = "--threads", description = "Number of parallel threads to launch.")
     public Integer threads = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
+
+    @Parameter(names = "--repetitions", description = "Number of time the analysis is repeated.")
+    public Integer repetitions = 1;
 
     @Parameter(names = "--instances-path", description = "Path to the directory with the instance files.", required = true)
     public String instancesPath = null;
@@ -83,15 +83,16 @@ public class TrackSolutionsCommand extends AbstractCommand {
     }
 
     private void writeHeader(BufferedWriter writer) throws IOException {
-        writer.append(String.format("%s,%s,%s,%s,%s,%s,%s", "INSTANCE", "SEED", "TIME.LIMIT.NS", "TIME.NS",
-                "ITERATION", "INCUMBENT.MAX", "INCUMBENT.SUM"));
+        writer.append("INSTANCE,N,M,ID,SEED,TIME.LIMIT.NS,TIME.NS,ITERATION,INCUMBENT.MAX,INCUMBENT.SUM");
         writer.newLine();
         writer.flush();
     }
 
     private synchronized void writeSummary(BufferedWriter writer, Solution solution, String instance, long seed, long timeLimit, long time, long iteration) throws IOException {
-        String data = String.format("%s,%d,%d,%d,%d,%d,%d,", instance, seed, timeLimit, time,
-                iteration, solution.getMakespan(), solution.getSumMachinesMakespan());
+        String[] dim = instance.trim().split("_");
+        String data = String.format("%s,%d,%d,%d,%d,%d,%d,%d,%d,%d", instance, Integer.valueOf(dim[1]),
+                Integer.valueOf(dim[2]), Integer.valueOf(dim[5]), seed, timeLimit, time, iteration,
+                solution.getMakespan(), solution.getSumMachinesMakespan());
         writer.write(data);
         writer.newLine();
         writer.flush();
@@ -100,7 +101,7 @@ public class TrackSolutionsCommand extends AbstractCommand {
     private void writeSolution(Problem problem, Solution solution, String instance, long seed, long iteration) throws IOException {
 
         // Create directory, if it does not exists
-        Path path = Paths.get(outputPath).resolve("solutions").resolve(instance).resolve(String.valueOf(seed));
+        Path path = Paths.get(outputPath).resolve("track").resolve(instance).resolve(String.valueOf(seed));
         synchronized(this) {
             Files.createDirectories(path);
         }
@@ -155,12 +156,12 @@ public class TrackSolutionsCommand extends AbstractCommand {
 
     private static class Runner implements Runnable {
 
-        TrackSolutionsCommand launcher;
+        TrackCommand launcher;
         BufferedWriter writer;
         private File instance;
         private long seed;
 
-        public Runner(TrackSolutionsCommand launcher, BufferedWriter writer, File instance, long seed) {
+        public Runner(TrackCommand launcher, BufferedWriter writer, File instance, long seed) {
             this.launcher = launcher;
             this.writer = writer;
             this.instance = instance;
@@ -182,6 +183,7 @@ public class TrackSolutionsCommand extends AbstractCommand {
                 Map<String, Object> params = new HashMap<>();
                 long timeLimit = problem.n * (problem.m / 2) * 50;
                 params.put("time-limit", timeLimit);
+                params.put("iterations-limit", Long.MAX_VALUE);
 
                 // Run the optimization algorithm
                 Callback callback = new Callback();

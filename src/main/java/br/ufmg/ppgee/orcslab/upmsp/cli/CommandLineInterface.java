@@ -3,7 +3,7 @@ package br.ufmg.ppgee.orcslab.upmsp.cli;
 import br.ufmg.ppgee.orcslab.upmsp.cli.command.AnalizeCommand;
 import br.ufmg.ppgee.orcslab.upmsp.cli.command.Command;
 import br.ufmg.ppgee.orcslab.upmsp.cli.command.OptimizeCommand;
-import br.ufmg.ppgee.orcslab.upmsp.cli.command.TrackSolutionsCommand;
+import br.ufmg.ppgee.orcslab.upmsp.cli.command.TrackCommand;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
@@ -28,9 +28,9 @@ public class CommandLineInterface {
      */
     public CommandLineInterface() {
         commands = new HashMap<>();
-        commands.put("analize", new AnalizeCommand());
-        commands.put("track-solutions", new TrackSolutionsCommand());
         commands.put("optimize", new OptimizeCommand());
+        commands.put("track", new TrackCommand());
+        commands.put("analize", new AnalizeCommand());
     }
 
     /**

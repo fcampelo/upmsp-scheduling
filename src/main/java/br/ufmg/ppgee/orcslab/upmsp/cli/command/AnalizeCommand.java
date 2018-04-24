@@ -1,7 +1,5 @@
 package br.ufmg.ppgee.orcslab.upmsp.cli.command;
 
-import br.ufmg.ppgee.orcslab.upmsp.algorithm.Algorithm;
-import br.ufmg.ppgee.orcslab.upmsp.algorithm.RandomHeuristic;
 import br.ufmg.ppgee.orcslab.upmsp.algorithm.SimulatedAnnealing;
 import br.ufmg.ppgee.orcslab.upmsp.neighborhood.*;
 import br.ufmg.ppgee.orcslab.upmsp.problem.Problem;
@@ -10,221 +8,146 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-@Parameters(commandDescription = "Perform an analysis of the neighborhoods.")
+@Parameters(commandDescription = "Perform the neighborhood analisys.")
 public class AnalizeCommand extends AbstractCommand {
 
-    @Parameter(names = "--verbose", description = "Show the progress of the analysis.")
+    @Parameter(names = "--verbose", description = "Show the progress.")
     public boolean verbose = false;
 
-    @Parameter(names = "--optimize", description = "Perform the analysis throught an optimization process.")
+    @Parameter(names = "--threads", description = "Number of threads used to perform the analysis.")
+    public Integer threads = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
+
+    @Parameter(names = "--optimize", description = "Perform the analysis throughout the optimization process.")
     public boolean optimize = false;
 
-    @Parameter(names = "--repetitions", description = "Perform the analysis throught an optimization process.")
+    @Parameter(names = "--track", description = "Save all solutions which at some point were incumbents.")
+    public boolean track = false;
+
+    @Parameter(names = "--repetitions", description = "Number of times the analysis will be repeated.")
     public Integer repetitions = 1;
 
-    @Parameter(names = "--instances-path", description = "Path to the directory with the instance files.")
-    public String instancesPath = ".";
+    @Parameter(names = "--instances", description = "Path to the directory containing the instance files.", required = true)
+    public String instancesPath = null;
 
-    @Parameter(names = "--output-file", description = "Path to file in which the data will be saved.")
-    public String outputPath = "analysis-data.csv";
+    @Parameter(names = "--output", description = "Path to the file in which the data will be saved.")
+    public String output = ".";
+
+    private long completedEntries;
+    private long totalEntires;
+    private List<Neighborhood> neighborhoods;
 
     @Override
     public void doRun(String name, JCommander cmd) throws Exception {
-        if (optimize) {
-            runWithOptimization();
-        } else {
-            runWithoutOptimization();
-        }
-    }
-
-    /**
-     * Perform the analysis of the neighborhoods with randomly generated solutions.
-     * @throws Exception If some error occur.
-     */
-    private void runWithoutOptimization() throws Exception {
-
-        // List of neighborhoods
-        List<Neighborhood> neighborhoods = Arrays.asList(
-                new Shift(),
-                new Switch(),
-                new TaskMove(),
-                new Swap(),
-                new DirectSwap(),
-                new TwoShift()
-        );
 
         // List of instances to use
         File[] instances = Paths.get(instancesPath).toFile().listFiles((directory, filename) -> {
             return filename.endsWith(".txt");
         });
 
-        // Calculate the total of entries to be analyzed
-        long total = instances.length * neighborhoods.size() * repetitions;
-
-        // Algorithm used to generate reference solutions
-        Algorithm algorithm = new RandomHeuristic();
-
-        // Perform the analysis
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputPath))) {
-
-            // Write header
-            writeHeader(writer);
-
-            long completed = 0L;
-            for (int repetition = 1; repetition <= repetitions; ++repetition) {
-                for (File instance : instances) {
-
-                    // Load the instance file
-                    String instanceName = instance.getName().replace(".txt", "");
-                    Problem problem = new Problem(instance.toPath());
-
-                    // Create a reference solution
-                    Random random = new Random(repetition);
-                    Solution solution = algorithm.solve(problem, random, null);
-
-                    for (Neighborhood neighborhood : neighborhoods) {
-
-                        // Evaluate the neighborhood
-                        Stats stats = neighborhood.getStats(problem, solution);
-
-                        // Write data
-                        write(writer, instanceName, neighborhood.getName(), repetition, 0, 0, solution, stats);
-
-                        // Print progress
-                        ++completed;
-                        if (verbose) {
-                            System.out.print(String.format("\rProgress: %d of %d (%.2f%%)", completed, total,
-                                    100.0 * (completed / (double) total)));
-                        }
-                    }
-                }
-            }
-
-            if (verbose) {
-                System.out.println();
-            }
-        }
-    }
-
-    /**
-     * Peform the analysis of the neighborhoods throughout an optimization algorithm. The algorithm
-     * used for optimization is {@link SimulatedAnnealing}.
-     * @throws Exception If some error occur.
-     */
-    private void runWithOptimization() throws Exception {
-
-        // List of neighborhoods
-        List<Neighborhood> neighborhoods = Arrays.asList(
-                new Shift(),
-                new Switch(),
-                new TaskMove(),
-                new Swap(),
-                new DirectSwap(),
-                new TwoShift()
+        // List of neighborhoods to perform the analysis
+        neighborhoods = Arrays.asList(
+                new Shift(), new Switch(), new TaskMove(),
+                new Swap(), new DirectSwap(), new TwoShift()
         );
 
-        // List of instances to use
-        File[] instances = Paths.get(instancesPath).toFile().listFiles((directory, filename) -> {
-            return filename.endsWith(".txt");
-        });
+        // Total number of entries to solve
+        totalEntires = instances.length * neighborhoods.size() * repetitions;
+        completedEntries = 0L;
 
-        // Calculate the total of entries to be analyzed
-        long total = instances.length * neighborhoods.size() * repetitions;
+        // Log
+        if (verbose) {
+            System.out.print(String.format("Progress: %d of %d (%.2f%%)", completedEntries, totalEntires,
+                    100.0 * (completedEntries / (double) totalEntires)));
+        }
 
-        // Algorithm used to generate reference solutions
-        SimulatedAnnealing algorithm = new SimulatedAnnealing();
+        // Run entries
+        Files.createDirectories(Paths.get(output).getParent());
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(output))) {
 
-        // Perform the analysis
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputPath))) {
-
-            // Write header
+            // Write header of CSV file
             writeHeader(writer);
 
-            long completed = 0L;
+            ExecutorService executor = Executors.newFixedThreadPool(threads);
             for (int repetition = 1; repetition <= repetitions; ++repetition) {
                 for (File instance : instances) {
-
-                    // Load the instance file
-                    String instanceName = instance.getName().replace(".txt", "");
-                    Problem problem = new Problem(instance.toPath());
-
-                    // Algorithm parameters
-                    Map<String, Object> params = new HashMap<>();
-                    long timeLimit = problem.n * (problem.m / 2) * 50;
-                    params.put("time-limit", timeLimit);
-
-                    // Run the optimization algorithm
-                    Callback callback = new Callback();
-                    Random random = new Random(repetition);
-                    algorithm.solve(problem, random, params, callback);
-
-                    for (Neighborhood neighborhood : neighborhoods) {
-                        for (Entry entry : callback.entries) {
-
-                            // Evaluate the neighborhood
-                            Stats stats = neighborhood.getStats(problem, entry.solution);
-
-                            // Write data
-                            write(writer, instanceName, neighborhood.getName(), repetition, timeLimit, entry.time, entry.solution, stats);
-                        }
-
-                        // Print progress
-                        ++completed;
-                        if (verbose) {
-                            System.out.print(String.format("\rProgress: %d of %d (%.2f%%)", completed, total,
-                                    100.0 * (completed / (double) total)));
-                        }
-                    }
+                    Runner entry = new Runner(this, writer, instance, repetition);
+                    executor.execute(entry);
                 }
             }
 
-            if (verbose) {
-                System.out.println();
-            }
+            /// Wait all threads to finish
+            executor.shutdown();
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         }
+
+        System.out.println();
     }
 
     private void writeHeader(BufferedWriter writer) throws IOException {
-        writer.append(String.format("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
-                "INSTANCE", "SEED", "TIME", "INCUMBENT.MAX", "INCUMBENT.SUM", "NEIGHBORHOOD", "NEIGHBORHOOD.SIZE",
-                "CLASS.MAX", "CLASS.SUM", "COUNT", "MAX.BEST", "MAX.WORST", "MAX.MEAN", "SUM.BEST", "SUM.WORST", "SUM.MEAN"));
+        writer.append("INSTANCE,N,M,ID,SEED,TIME.LIMIT.NS,TIME.NS,ITERATION,INCUMBENT.MAX,INCUMBENT.SUM,NEIGHBORHOOD," +
+                "NEIGHBORHOOD.SIZE,CLASS.MAX,CLASS.SUM,COUNT,MAX.BEST,MAX.WORST,MAX.MEAN,SUM.BEST,SUM.WORST,SUM.MEAN");
         writer.newLine();
-    }
-
-    private void write(BufferedWriter writer, String instance, String neighborhood, long seed, long timeLimit, long time, Solution solution, Stats stats) throws IOException {
-
-        // Write each entry
-        for (Stats.Type type : Stats.Type.values()) {
-            write(writer, instance, neighborhood, seed, timeLimit, time, solution, stats, type);
-        }
-
-        // Flush data
         writer.flush();
     }
 
-    private void write(BufferedWriter writer, String instance, String neighborhood, long seed, long timeLimit, long time, Solution solution, Stats stats, Stats.Type type) throws IOException {
+    private synchronized void writeSummary(BufferedWriter writer, Solution solution, Stats stats, String instance,
+                                           String neighborhood, Stats.Type type, long seed, long timeLimit, long time, long iteration) throws IOException {
 
-        String[] strType = type.name().toLowerCase().split("_");
+        // Some data
+        String[] dim = instance.trim().split("_");
+        String[] clazz = type.name().toLowerCase().split("_");
 
         // Prepare data for writing
-        String data = String.format("%s,%d,%d,%d,%d,%d,%s,%d,%s,%s,%d,%d,%d,%.6f,%d,%d,%.6f",
-                instance, seed, timeLimit, time, solution.getMakespan(), solution.getSumMachinesMakespan(), neighborhood,
-                stats.countNeighbors(), strType[0], strType[1], stats.countNeighbors(type),
-                stats.bestDeltaMakespan(type),
-                stats.worstDeltaMakespan(type),
-                stats.meanDeltaMakespan(type),
-                stats.bestDeltaSumMachinesMakespan(type),
-                stats.worstDeltaSumMachinesMakespan(type),
-                stats.meanDeltaSumMachinesMakespan(type));
+        String data = String.format("%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%s,%s,%d,%d,%d,%.6f,%d,%d,%.6f",
+                instance, Integer.valueOf(dim[1]), Integer.valueOf(dim[2]), Integer.valueOf(dim[5]), seed, timeLimit,
+                time, iteration, solution.getMakespan(), solution.getSumMachinesMakespan(), neighborhood,
+                stats.countNeighbors(), clazz[0], clazz[1], stats.countNeighbors(type), stats.bestDeltaMakespan(type),
+                stats.worstDeltaMakespan(type), stats.meanDeltaMakespan(type), stats.bestDeltaSumMachinesMakespan(type),
+                stats.worstDeltaSumMachinesMakespan(type), stats.meanDeltaSumMachinesMakespan(type));
 
         // Write data
         writer.write(data);
         writer.newLine();
+        writer.flush();
+    }
+
+    private void writeSolution(Problem problem, Solution solution, String instance, long seed, long iteration) throws IOException {
+
+        // Create directory, if it does not exists
+        Path path = Paths.get(output).getParent().resolve("track").resolve(instance).resolve(String.valueOf(seed));
+        synchronized(this) {
+            Files.createDirectories(path);
+        }
+
+        // Write file
+        Path file = path.resolve(String.format("iteration_%d.txt", iteration));
+        try (BufferedWriter writer = Files.newBufferedWriter(file)) {
+            for (int k = 0; k < problem.m; ++k) {
+                for (int idx = 0; idx < solution.count(k); ++idx) {
+                    writer.write(String.format("%d ", solution.get(k, idx)));
+                }
+                writer.newLine();
+            }
+        }
+    }
+
+    private synchronized void onEntryCompleted() {
+        ++completedEntries;
+        if (verbose) {
+            System.out.print(String.format("\rProgress: %d of %d (%.2f%%)", completedEntries, totalEntires,
+                    100.0 * (completedEntries / (double) totalEntires)));
+        }
     }
 
 
@@ -232,13 +155,13 @@ public class AnalizeCommand extends AbstractCommand {
     // Callback classes
     // --------------------------------------------------------------------------------------------
 
-    private static class Entry {
+    private static class Incumbent {
 
         public Solution solution;
         public long iteration;
         public long time;
 
-        public Entry(Solution solution, long iteration, long time) {
+        public Incumbent(Solution solution, long iteration, long time) {
             this.solution = solution;
             this.iteration = iteration;
             this.time = time;
@@ -247,11 +170,84 @@ public class AnalizeCommand extends AbstractCommand {
 
     private static class Callback implements SimulatedAnnealing.Callback {
 
-        public List<Entry> entries = new LinkedList<>();
+        public List<Incumbent> track = new LinkedList<>();
 
         @Override
-        public void callback(Solution incumbent, long iteration, long time) {
-            entries.add(new Entry(incumbent, iteration, time));
+        public void callback(Solution solution, long iteration, long time) {
+            track.add(new Incumbent(solution, iteration, time));
         }
     }
+
+    private static class Runner implements Runnable {
+
+        AnalizeCommand launcher;
+        BufferedWriter writer;
+        private File instance;
+        private long seed;
+
+        public Runner(AnalizeCommand launcher, BufferedWriter writer, File instance, long seed) {
+            this.launcher = launcher;
+            this.writer = writer;
+            this.instance = instance;
+            this.seed = seed;
+        }
+
+        @Override
+        public void run() {
+            try {
+
+                // Load the instance file
+                String instanceName = instance.getName().replace(".txt", "");
+                Problem problem = new Problem(instance.toPath());
+
+                // Instantiate the algorithm (Simulated Annealing)
+                SimulatedAnnealing algorithm = new SimulatedAnnealing();
+
+                // Algorithm parameters
+                Map<String, Object> params = new HashMap<>();
+
+                long timeLimit = 0L;
+                if (launcher.optimize) {
+                    timeLimit = problem.n * (problem.m / 2) * 50;
+                    params.put("time-limit", timeLimit);
+                    params.put("iterations-limit", Long.MAX_VALUE);
+                } else {
+                    params.put("time-limit", timeLimit);
+                    params.put("iterations-limit", 0L);
+                }
+
+                // Run the optimization algorithm
+                Callback callback = new Callback();
+                Random random = new Random(seed);
+                algorithm.solve(problem, random, params, callback);
+
+                // Write data
+                for (Neighborhood neighborhood : launcher.neighborhoods) {
+                    for (Incumbent incumbent : callback.track) {
+
+                        // Evaluate the neighborhood
+                        Stats stats = neighborhood.getStats(problem, incumbent.solution);
+
+                        // Write the summary
+                        for (Stats.Type type : Stats.Type.values()) {
+                            launcher.writeSummary(writer, incumbent.solution, stats, instanceName, neighborhood.getName(),
+                                    type, seed, TimeUnit.MILLISECONDS.toNanos(timeLimit), incumbent.time, incumbent.iteration);
+                        }
+
+                        // Write solution
+                        if (launcher.track) {
+                            launcher.writeSolution(problem, incumbent.solution, instanceName, seed, incumbent.iteration);
+                        }
+                    }
+
+                    // Update progress
+                    launcher.onEntryCompleted();
+                }
+
+            } catch (Exception e) {
+                throw new RuntimeException(e.getMessage(), e);
+            }
+        }
+    }
+
 }
