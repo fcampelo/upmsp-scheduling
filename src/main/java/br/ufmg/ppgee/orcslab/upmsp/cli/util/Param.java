@@ -18,7 +18,7 @@ public class Param {
     /**
      * Constructor.
      * @param name Name of the parameter.
-     * @param value Valur of the parameter.
+     * @param value Value of the parameter.
      */
     public Param(String name, String value) {
         this.name = name;

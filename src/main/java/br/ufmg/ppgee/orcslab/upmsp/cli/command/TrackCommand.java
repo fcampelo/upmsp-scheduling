@@ -1,5 +1,6 @@
 package br.ufmg.ppgee.orcslab.upmsp.cli.command;
 
+import br.ufmg.ppgee.orcslab.upmsp.algorithm.Callback;
 import br.ufmg.ppgee.orcslab.upmsp.algorithm.SimulatedAnnealing;
 import br.ufmg.ppgee.orcslab.upmsp.problem.Problem;
 import br.ufmg.ppgee.orcslab.upmsp.problem.Solution;
@@ -144,12 +145,12 @@ public class TrackCommand extends AbstractCommand {
         }
     }
 
-    private static class Callback implements SimulatedAnnealing.Callback {
+    private static class CustomCallback implements Callback {
 
         public List<Incumbent> track = new LinkedList<>();
 
         @Override
-        public void callback(Solution solution, long iteration, long time) {
+        public void onNewIncumbent(Solution solution, long iteration, long time) {
             track.add(new Incumbent(solution, iteration, time));
         }
     }
@@ -186,7 +187,7 @@ public class TrackCommand extends AbstractCommand {
                 params.put("iterations-limit", Long.MAX_VALUE);
 
                 // Run the optimization algorithm
-                Callback callback = new Callback();
+                CustomCallback callback = new CustomCallback();
                 Random random = new Random(seed);
                 algorithm.solve(problem, random, params, callback);
 

@@ -13,7 +13,7 @@ import java.util.*;
 public class RandomHeuristic extends AbstractAlgorithm {
 
     @Override
-    protected Solution doSolve(Problem problem, Random random, Map<String, Object> parameters) {
+    protected Solution doSolve(Problem problem, Random random, Map<String, Object> parameters, Callback callback) {
 
         // Create an empty solution
         Solution solution = new Solution(problem);

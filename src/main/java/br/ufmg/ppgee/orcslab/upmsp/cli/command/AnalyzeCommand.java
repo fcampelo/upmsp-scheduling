@@ -1,5 +1,6 @@
 package br.ufmg.ppgee.orcslab.upmsp.cli.command;
 
+import br.ufmg.ppgee.orcslab.upmsp.algorithm.Callback;
 import br.ufmg.ppgee.orcslab.upmsp.algorithm.SimulatedAnnealing;
 import br.ufmg.ppgee.orcslab.upmsp.neighborhood.*;
 import br.ufmg.ppgee.orcslab.upmsp.problem.Problem;
@@ -19,8 +20,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-@Parameters(commandDescription = "Perform the neighborhood analisys.")
-public class AnalizeCommand extends AbstractCommand {
+@Parameters(commandDescription = "Perform the neighborhood analysis.")
+public class AnalyzeCommand extends AbstractCommand {
 
     @Parameter(names = "--verbose", description = "Show the progress.")
     public boolean verbose = false;
@@ -168,24 +169,24 @@ public class AnalizeCommand extends AbstractCommand {
         }
     }
 
-    private static class Callback implements SimulatedAnnealing.Callback {
+    private static class CustomCallback implements Callback {
 
         public List<Incumbent> track = new LinkedList<>();
 
         @Override
-        public void callback(Solution solution, long iteration, long time) {
+        public void onNewIncumbent(Solution solution, long iteration, long time) {
             track.add(new Incumbent(solution, iteration, time));
         }
     }
 
     private static class Runner implements Runnable {
 
-        AnalizeCommand launcher;
+        AnalyzeCommand launcher;
         BufferedWriter writer;
         private File instance;
         private long seed;
 
-        public Runner(AnalizeCommand launcher, BufferedWriter writer, File instance, long seed) {
+        public Runner(AnalyzeCommand launcher, BufferedWriter writer, File instance, long seed) {
             this.launcher = launcher;
             this.writer = writer;
             this.instance = instance;
@@ -217,7 +218,7 @@ public class AnalizeCommand extends AbstractCommand {
                 }
 
                 // Run the optimization algorithm
-                Callback callback = new Callback();
+                CustomCallback callback = new CustomCallback();
                 Random random = new Random(seed);
                 algorithm.solve(problem, random, params, callback);
 

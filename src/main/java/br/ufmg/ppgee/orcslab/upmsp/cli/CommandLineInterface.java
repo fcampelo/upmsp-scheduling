@@ -1,6 +1,6 @@
 package br.ufmg.ppgee.orcslab.upmsp.cli;
 
-import br.ufmg.ppgee.orcslab.upmsp.cli.command.AnalizeCommand;
+import br.ufmg.ppgee.orcslab.upmsp.cli.command.AnalyzeCommand;
 import br.ufmg.ppgee.orcslab.upmsp.cli.command.Command;
 import br.ufmg.ppgee.orcslab.upmsp.cli.command.OptimizeCommand;
 import br.ufmg.ppgee.orcslab.upmsp.cli.command.TrackCommand;
@@ -30,7 +30,7 @@ public class CommandLineInterface {
         commands = new HashMap<>();
         commands.put("optimize", new OptimizeCommand());
         commands.put("track", new TrackCommand());
-        commands.put("analize", new AnalizeCommand());
+        commands.put("analyze", new AnalyzeCommand());
     }
 
     /**

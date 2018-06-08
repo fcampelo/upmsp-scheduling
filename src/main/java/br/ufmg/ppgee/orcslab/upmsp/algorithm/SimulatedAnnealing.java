@@ -28,50 +28,16 @@ public class SimulatedAnnealing extends AbstractAlgorithm {
      */
     private static double EPS = 1e-6;
 
+    /**
+     * Implement the simulated annealing proposed by [1] that solves the unrelated parallel machine
+     * scheduling problem with sequence dependent setup times.
+     * @param problem The problem instance.
+     * @param random A random number generator.
+     * @param parameters Algorithm parameters.
+     * @param callback A callback object.
+     * @return A solution of the problem.
+     */
     @Override
-    protected Solution doSolve(Problem problem, Random random, Map<String, Object> parameters) {
-        return doSolve(problem, random, parameters, null);
-    }
-
-    /**
-     * Implement the simulated annealing proposed by [1] that solves the unrelated parallel machine
-     * scheduling problem with sequence dependent setup times.
-     * @param problem The problem instance.
-     * @param random A random number generator.
-     * @param parameters Algorithm parameters.
-     * @param callback A callback object.
-     * @return A solution of the problem.
-     */
-    public Solution solve(Problem problem, Random random, Map<String, Object> parameters, Callback callback) {
-
-        // Initialize the map of parameters if it is null
-        if (parameters == null) {
-            parameters = new HashMap<>();
-        }
-
-        // Initialize the random number generator if it is null
-        if (random == null) {
-            random = new Random();
-        }
-
-        // Set the seed of the random number generator
-        if (parameters.containsKey("seed")) {
-            Number seed = (Number) parameters.get("seed");
-            random.setSeed(seed.longValue());
-        }
-
-        return doSolve(problem, random, parameters, callback);
-    }
-
-    /**
-     * Implement the simulated annealing proposed by [1] that solves the unrelated parallel machine
-     * scheduling problem with sequence dependent setup times.
-     * @param problem The problem instance.
-     * @param random A random number generator.
-     * @param parameters Algorithm parameters.
-     * @param callback A callback object.
-     * @return A solution of the problem.
-     */
     protected Solution doSolve(Problem problem, Random random, Map<String, Object> parameters, Callback callback) {
 
         // Compute default time limit according to [2] with the multiplier t = 50.
@@ -86,20 +52,32 @@ public class SimulatedAnnealing extends AbstractAlgorithm {
         double coolingRate = (double) parameters.getOrDefault("cooling-rate", 0.96);
 
         // List of neighborhoods available
-        List<Neighborhood> neighborhoods = Arrays.asList(
-                new Shift(), new Switch(), new TaskMove(),
-                new Swap(), new TwoShift(), new DirectSwap()
-        );
+        List<Neighborhood> neighborhoods = null;
+        if (!parameters.containsKey("disabled-neighborhoods")) {
+            neighborhoods = Arrays.asList(
+                    new Shift(), new Switch(), new TaskMove(),
+                    new Swap(), new TwoShift(), new DirectSwap()
+            );
+        } else {
+            List<String> disabled = (List<String>) parameters.get("disabled-neighborhoods");
+            neighborhoods = new ArrayList<>();
+            if (!disabled.contains("shift")) neighborhoods.add(new Shift());
+            if (!disabled.contains("switch")) neighborhoods.add(new Switch());
+            if (!disabled.contains("task-move")) neighborhoods.add(new TaskMove());
+            if (!disabled.contains("swap")) neighborhoods.add(new Swap());
+            if (!disabled.contains("two-shift")) neighborhoods.add(new TwoShift());
+            if (!disabled.contains("direct-swap")) neighborhoods.add(new DirectSwap());
+        }
 
         // Create a random solution as start solution
         RandomHeuristic randomHeuristic = new RandomHeuristic();
-        Solution solution = randomHeuristic.solve(problem, random, null);
+        Solution solution = randomHeuristic.solve(problem, random, null, null);
 
         // Make the initial solution as the incumbent one
         Solution bestSolution = new Solution(solution);
 
         // Notify callback about the initial solution
-        callback.callback(new Solution(bestSolution), 0L, 0L);
+        callback.onNewIncumbent(new Solution(bestSolution), 0L, 0L);
 
         // Initialize the algorithm attributes
         long totalIterations = 0L;
@@ -143,18 +121,10 @@ public class SimulatedAnnealing extends AbstractAlgorithm {
                 if (solution.getMakespan() < bestSolution.getMakespan()) {
                     bestSolution = new Solution(solution);
 
-                    // Call callback function
-                    if (callback != null) {
-
-                        // Stop timer
-                        timer.stop();
-
-                        // Notify callback
-                        callback.callback(new Solution(bestSolution), totalIterations, timer.count(TimeUnit.NANOSECONDS));
-
-                        // Resume timer
-                        timer.start();
-                    }
+                    // Callback
+                    timer.stop();
+                    callback.onNewIncumbent(new Solution(bestSolution), totalIterations, timer.count(TimeUnit.NANOSECONDS));
+                    timer.start();
                 }
 
             } else {
@@ -180,25 +150,6 @@ public class SimulatedAnnealing extends AbstractAlgorithm {
         // Return the best solution found
         bestSolution.update();
         return bestSolution;
-    }
-
-
-    // -----------------------------------------------------------------------------------------------------------------
-    // Auxiliary classes
-
-    /**
-     * Callback class that allows custom process each time a new incumbent solution is found.
-     */
-    public interface Callback {
-
-        /**
-         * Callback function.
-         *
-         * @param incumbent The incumbent solution.
-         * @param iteration The current iteration.
-         * @param time      The current time (in nanoseconds).
-         */
-        void callback(Solution incumbent, long iteration, long time);
     }
 
 }

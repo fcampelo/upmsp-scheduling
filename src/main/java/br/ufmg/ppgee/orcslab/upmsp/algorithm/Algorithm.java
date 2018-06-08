@@ -17,8 +17,9 @@ public interface Algorithm {
      * @param problem Instance of the problem to be solved.
      * @param random A random number generator.
      * @param parameters Algorithm parameters.
+     * @param callback A callback object.
      * @return A solution to the problem.
      */
-    Solution solve(Problem problem, Random random, Map<String, Object> parameters);
+    Solution solve(Problem problem, Random random, Map<String, Object> parameters, Callback callback);
 
 }
