@@ -5,7 +5,6 @@ import br.ufmg.ppgee.orcslab.upmsp.algorithm.Callback;
 import br.ufmg.ppgee.orcslab.upmsp.algorithm.SimulatedAnnealing;
 import br.ufmg.ppgee.orcslab.upmsp.cli.util.Param;
 import br.ufmg.ppgee.orcslab.upmsp.cli.util.ParamConverter;
-import br.ufmg.ppgee.orcslab.upmsp.neighborhood.Neighborhood;
 import br.ufmg.ppgee.orcslab.upmsp.problem.Problem;
 import br.ufmg.ppgee.orcslab.upmsp.problem.Solution;
 import com.beust.jcommander.JCommander;
@@ -14,7 +13,6 @@ import com.beust.jcommander.Parameters;
 
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 @Parameters(commandDescription = "Solve an instance of the problem.")
 public class OptimizeCommand extends AbstractCommand {
@@ -34,7 +32,7 @@ public class OptimizeCommand extends AbstractCommand {
     @Parameter(names = "--instance", description = "Path to the instance file.", required = true)
     public String instancePath = null;
 
-    @Parameter(names = "--algorithm", description = "Algorithm used to solve the problem.", required = true)
+    @Parameter(names = "--algorithm", description = "Algorithm used to solve the problem.")
     public String algorithmName = "simulated-annealing";
 
     @Parameter(names = "--param", description = "Algorithm parameters.", converter = ParamConverter.class)
@@ -57,7 +55,7 @@ public class OptimizeCommand extends AbstractCommand {
         Algorithm algorithm = null;
         if ("simulated-annealing".equalsIgnoreCase(algorithmName)) {
             algorithm = new SimulatedAnnealing();
-            proccessSAParameters(parameters, params);
+            proccessSAParameters(params);
         } else {
             throw new RuntimeException("Algorithm not found.");
         }
@@ -85,10 +83,6 @@ public class OptimizeCommand extends AbstractCommand {
             System.out.println();
         }
 
-        for (Param param : parameters) {
-            System.out.println("Parâmetro: " + param.name + " -> " + param.value);
-        }
-
         // Print summary
         if (!verbose) {
             System.out.println(String.format("%d %d", solution.getMakespan(), solution.getSumMachinesMakespan()));
@@ -106,7 +100,7 @@ public class OptimizeCommand extends AbstractCommand {
     // Auxiliary methods
     // --------------------------------------------------------------------------------------------
 
-    private void proccessSAParameters(List<Param> input, Map<String, Object> output) {
+    private void proccessSAParameters(Map<String, Object> output) {
         List<String> disabled = new ArrayList<>();
         output.put("disabled-neighborhoods", disabled);
 
@@ -141,13 +135,15 @@ public class OptimizeCommand extends AbstractCommand {
     // Auxiliary classes
     // --------------------------------------------------------------------------------------------
 
-    private static class CustomCallback implements Callback {
+    private class CustomCallback implements Callback {
 
         @Override
         public void onNewIncumbent(Solution solution, long iteration, long time) {
-            solution.update();
-            System.out.println(String.format("| %12d | %12d | %12d | %12.3f |", iteration,
-                    solution.getMakespan(), solution.getSumMachinesMakespan(), time / 1000000000.0));
+            if (verbose) {
+                solution.update();
+                System.out.println(String.format("| %12d | %12d | %12d | %12.3f |", iteration,
+                        solution.getMakespan(), solution.getSumMachinesMakespan(), time / 1000000000.0));
+            }
         }
     }
 

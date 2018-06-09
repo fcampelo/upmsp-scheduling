@@ -109,9 +109,14 @@ public class SimulatedAnnealing extends AbstractAlgorithm {
                 trialSolution = neighborhood.getAnyNeighbor(problem, solution, random, target);
             }
 
-            // Check for improvement
-            //int delta = trialSolution.getMakespan() - solution.getMakespan();
+            /* Check for improvement
+             * NOTE: In the paper, the authors describe delta as:
+             * current_makespan - new_makespan
+             * However, their code actualy considers the difference in the makespan of
+             * the machines used in the move. This is equivalent to:
+             */
             int delta = trialSolution.getSumMachinesMakespan() - solution.getSumMachinesMakespan();
+
             if (delta <= 0) {
 
                 // Accept the move

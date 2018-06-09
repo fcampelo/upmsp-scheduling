@@ -31,10 +31,10 @@ public class TrackCommand extends AbstractCommand {
     @Parameter(names = "--repetitions", description = "Number of time the analysis is repeated.")
     public Integer repetitions = 1;
 
-    @Parameter(names = "--instances-path", description = "Path to the directory with the instance files.", required = true)
+    @Parameter(names = "--instances", description = "Path to the directory with the instance files.", required = true)
     public String instancesPath = null;
 
-    @Parameter(names = "--output-path", description = "Path to directory in which the data will be saved.")
+    @Parameter(names = "--output", description = "Path to directory in which the data will be saved.")
     public String outputPath = ".";
 
     private long completedEntries;

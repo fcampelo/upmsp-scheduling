@@ -45,26 +45,28 @@ java -jar upmsp-all [command] [command options]
 in which `[command]` is the command to run and `[command options]` are command specific options. There are the following commands available:
 * `optimize`: Optimize an instance of the problem.
 * `analyze`: Perform the neighborhood analysis throughout the optimization process.
-* `track`: Save all solutions which, at some point of the optimization process, were incumbents.
+* `track`: Save all solutions which, at some point of the optimization process, were incumbents. It uses a Simulated Annealing [2](#references) as optimization algorithm.
 
 
 #### 2.2.3. Command "optimize"
 
-Usage:
+Usage:  
 ```
 java -jar upmsp-all optimize [options]
 ```
 
-Examples:
+Example:  
 ```
 java -jar upmsp-all optimize --algorithm simulated-annealing --instance I_50_10_S_1-9_1.txt --verbose
 ```
 
+Parameters:  
 `--algorithm <VALUE>`  
 (Default: `simulated-annealing`)  
 Optimization algorithm. Specific parameters for the algorithms are described in the next subsections.
 
 `--instance <VALUE>`  
+(Required)  
 Name of the file containing the instance data.
 
 `--seed <VALUE>`  
@@ -76,10 +78,10 @@ Seed used to initialize the random number generator used by the algorithms.
 Total time for running the algorithm (in milliseconds).
 
 `--verbose`  
-If set, the algorithm progress is displayed on the screen.
+If used, the algorithm progress is displayed on the screen.
 
 `--print-solution`  
-If set, the best solution is displayed on the screen at the end of the optimization process.
+If used, the best solution is displayed on the screen at the end of the optimization process.
 
 
 ##### Simulated Annealing specific parameters
@@ -118,20 +120,79 @@ This parameter can be used more than once to disable multiple neighborhood funct
 
 #### 2.2.4. Command "analyze"
 
-Usage:
+Usage:  
 ```
 java -jar upmsp-all analyze [options]
 ```
 
+Examples:  
+```
+java -jar upmsp-all analyze --instances ./upmsp/instances --verbose
+```
+
+Parameters:  
+`--instances <VALUE>`  
+(Required; Default: `.`)  
+Path to the directory containing the instance files.
+
+`--output <VALUE>`  
+(Default: `.`)  
+Path to the file in which the data will be saved.
+
+`--optimize`  
+If used, performs the analysis of the neighborhoods throughout the optimization process. The Simulated Annealing [2](#references) is used as optimization algorithm.
+
+`--track`  
+If used, save all solutions which at some point were incumbents.
+
+`--repetitions <VALUE>`  
+(Default: `1`)  
+Number of times the analysis will be repeated.
+
+`--threads <VALUE>`  
+(Default: number of threads available minus 1)  
+The number of threads used to perform the analysis.
+
+`--verbose`  
+If used, the progress is displayed on the screen.
+
+
 #### 2.2.5. Command "track"
 
-Usage:
+Usage:  
 ```
 java -jar upmsp-all track [options]
 ```
+
+Examples:  
+```
+java -jar upmsp-all track --instances ./upmsp/instances --output ./upmsp/track --verbose
+```
+
+Parameters:  
+`--instances <VALUE>`  
+(Required; Default: `.`)  
+Path to the directory containing the instance files.
+
+`--output <VALUE>`  
+(Default: `.`)  
+Path to the directory in which the data will be saved.
+
+`--repetitions <VALUE>`  
+(Default: `1`)  
+Number of times the analysis will be repeated.
+
+`--threads <VALUE>`  
+(Default: number of threads available minus 1)  
+The number of threads used to perform the analysis.
+
+`--verbose`  
+If used, the progress is displayed on the screen.
+
 
 ## References
 
 1. Valada, E.; Ruiz, R. "Genetic algorithms for the unrelated parallel machine scheduling problem with sequence dependent setup times". European Journal of Operational Research, 211(3), 612-622, 2011. (doi: [10.1016/j.ejor.2011.01.011](https://doi.org/10.1016/j.ejor.2011.01.011)
 
 2. Santos, H.G.; Toffolo, T.A.M.; Silva, C.L.T.F.; Berghe, G.V. "Analysis of stochastic local search methods for the unrelated parallel machine scheduling problem". International Transactions in Operational Research, 2016. (DOI: [10.1111/itor.12316](https://doi.org/10.1111/itor.12316))
+
