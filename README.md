@@ -192,7 +192,7 @@ If used, the progress is displayed on the screen.
 
 ## References
 
-1. Valada, E.; Ruiz, R. "Genetic algorithms for the unrelated parallel machine scheduling problem with sequence dependent setup times". European Journal of Operational Research, 211(3), 612-622, 2011. (doi: [10.1016/j.ejor.2011.01.011](https://doi.org/10.1016/j.ejor.2011.01.011))
+1. Vallada, E.; Ruiz, R. "Genetic algorithms for the unrelated parallel machine scheduling problem with sequence dependent setup times". European Journal of Operational Research, 211(3), 612-622, 2011. (doi: [10.1016/j.ejor.2011.01.011](https://doi.org/10.1016/j.ejor.2011.01.011))
 
-2. Santos, H.G.; Toffolo, T.A.M.; Silva, C.L.T.F.; Berghe, G.V. "Analysis of stochastic local search methods for the unrelated parallel machine scheduling problem". International Transactions in Operational Research, 2016. (DOI: [10.1111/itor.12316](https://doi.org/10.1111/itor.12316))
+2. Santos, H.G.; Toffolo, T.A.M.; Silva, C.L.T.F.; Berghe, G.V. "Analysis of stochastic local search methods for the unrelated parallel machine scheduling problem". International Transactions in Operational Research, 2016. (doi: [10.1111/itor.12316](https://doi.org/10.1111/itor.12316))
 
