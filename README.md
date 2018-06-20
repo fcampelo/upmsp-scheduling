@@ -12,7 +12,7 @@ Given a set N = {1, ..., n} of n jobs and a set M = {1, ..., m} of m parallel ma
 
 ### 1.1. Instance files
 
-The instances proposed by [1](#references) can be downloaded from the research group [Applied Optimization Systems](http://soa.iti.es/problem-instances):
+The instances proposed by [[1](#references)] can be downloaded from the home page of the [Applied Optimization Systems](http://soa.iti.es/problem-instances) group:
 * [Large and small instances](http://soa.iti.es/files/RSDST.7z)
 * [Test instances for calibration experiments](http://soa.iti.es/files/RSDSTCalibration.7z)
 
@@ -86,7 +86,7 @@ If used, the best solution is displayed on the screen at the end of the optimiza
 
 ##### Simulated Annealing specific parameters
 
-The Simulated Annealing implemented in this project is the one described in [2](#references). The specific parameters for the Simulated Annealing are described bellow:
+The Simulated Annealing implemented in this project is the one described in [[2](#references)]. The specific parameters for the Simulated Annealing are described bellow:
 
 `--param iterations-limit=<VALUE>`  
 (Default: a very large number)  
